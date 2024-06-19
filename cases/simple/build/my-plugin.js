@@ -1,24 +1,43 @@
-// 一个 JavaScript 类
 class MyPlugin {
-  // 在插件函数的 prototype 上定义一个 `apply` 方法，以 compiler 为参数。
   apply(compiler) {
-    // 指定一个挂载到 webpack 自身的事件钩子。
-    compiler.hooks.emit.tapAsync(
-      'MyPlugin',
-      (compilation, callback) => {
-        console.log('这是一个示例插件！');
-        // console.log(
-        //   '这里表示了资源的单次构建的 `compilation` 对象：',
-        //   compilation
-        // );
+    compiler.hooks.normalModuleFactory.tap('MyPlugin', (factory) => {
+      factory.hooks.parser.for('javascript/auto').tap('MyPlugin', (parser, options) => {
+        parser.hooks.program.tap('MyPlugin', (ast, comments) => {
 
-        // 用 webpack 提供的插件 API 处理构建过程
-        // compilation.addModule(/* ... */);
+          if (parser.state &&
+            parser.state.module &&
+            parser.state.module.resource.indexOf('node_modules') === -1) {
+            if (parser.state.module.resource.endsWith('.vue?vue&type=script&lang=js')) {
+              const exposedComponentRegex = /exposeComponent/;
 
-        callback();
-      }
-    );
+              const {source} = parser.state;
+              const match = source.match(exposedComponentRegex);
+              if (match) {
+                const mixinCode = `
+              const cloudMixin = {
+                name: 'CloudHelloWorld',
+                methods: {
+                  doFoo() {
+                    console.log('foo')
+                  }
+                }
+              };
+            `;
+                parser.state.source = 'const a = 1'
+                // const t = parser.getTagOfNode(ast);
+                // const body = t.get('body');
+                // body.unshift(parser.parseExpression(mixinCode));
+                //
+                // // 将修改后的 AST 赋值回去
+                debugger
+                // console.log(ast)
+              }
+            }
+          }
+        })
+      })
+    })
   }
 }
 
-module.exports = MyPlugin
+module.exports = MyPlugin;
