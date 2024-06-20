@@ -1,7 +1,6 @@
-# Jenga
+# Spaceport
 
-叠叠乐游戏
-Wikipedia: https://en.wikipedia.org/wiki/Jenga
+Wikipedia: https://en.wikipedia.org/wiki/spaceport
 
 vue2
 
@@ -13,10 +12,10 @@ vue2
 生态
 
 - API 设计
-- 编译时工具：jenga-loader
-- jenga-doc 用于生成暴露组件
+- 编译时工具：spaceport-loader
+- spaceport-doc 用于生成暴露组件
 - vscode/idea 插件
-- cli 用于快速移除一些jenga代码
+- cli 用于快速移除一些spaceport代码
 - lint规则增强
 
 实现能力
