@@ -1,22 +1,28 @@
 <template>
-  <div>custom hello world</div>
+  <!-- 模板肯定是用自定义的不会影响原本的组件 -->
+  <div>
+    <div>custom hello world</div>
+    <button @click="onSourceClick">sourceClick</button>
+    <!-- <super /> -->
+  </div>
 </template>
 
 <script>
+// 代码这边应该是要混入原本的
 import { extendComponent } from "@/utils";
 
-export default extendComponent('export-hello-world', {
-  name: 'CloudHelloWorld',
+export default extendComponent("export-hello-world", {
+  name: "CloudHelloWorld",
   methods: {
     doFoo() {
-      console.log('foo')
-    }
-  }
-})
+      console.log("foo");
+    },
+  },
+});
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+/* 样式肯定只影响他本身，不会影响原本组件的样式 */
 h3 {
   margin: 40px 0 0;
 }

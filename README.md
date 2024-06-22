@@ -33,3 +33,8 @@ vue2
 - 支持 高版本 vue2 ts的装饰器
 - 支持 vue3
 - 构建工具支持 webpack rspack vitejs
+
+
+- [x] 实现webpack修改源码
+- [ ] 根据两个文件代码改出合并后的代码
+
