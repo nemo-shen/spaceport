@@ -8,17 +8,8 @@ module.exports = defineConfig({
     optimization: {
       minimize: false,
     },
+    plugins: [
+      new MyPlugin()
+    ]
   },
-  chainWebpack: config => {
-    config.module
-      .rule('vue')
-      .use('vue-loader')
-      .tap(options => {
-        // 修改 vue-loader 的默认配置
-        return options;
-      })
-      .end()
-      .use('custom-vue-loader')
-      .loader(path.resolve(__dirname, 'build/custom-vue-loader.js'));
-  }
 })
