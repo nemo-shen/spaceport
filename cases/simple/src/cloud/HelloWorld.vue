@@ -3,6 +3,7 @@
   <div>
     <div>custom hello world</div>
     <button @click="onSourceClick">sourceClick</button>
+    <button @click="onPluginClick">onPluginClick</button>
     <!-- <super /> -->
   </div>
 </template>
@@ -13,6 +14,13 @@ import { extendComponent } from "@/utils";
 
 export default extendComponent("export-hello-world", {
   name: "CloudHelloWorld",
+  mixins: [{
+    methods: {
+      onPluginClick() {
+        console.log('onPluginClick')
+      }
+    }
+  }],
   methods: {
     doFoo() {
       console.log("foo");
