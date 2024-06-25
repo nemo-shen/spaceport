@@ -6,7 +6,14 @@ const {sources, Dependency} = require('webpack');
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 const generate = require('@babel/generator').default;
-const pluginName = "MyPlugin";
+const PLUGIN_NAME = "MyPlugin";
+
+const {
+  JAVASCRIPT_MODULE_TYPE_AUTO,
+  JAVASCRIPT_MODULE_TYPE_DYNAMIC,
+  JAVASCRIPT_MODULE_TYPE_ESM,
+  WEBPACK_MODULE_TYPE_RUNTIME
+} = require("./ModuleTypeConstants");
 
 class MyDependency extends Dependency {
   // Use the constructor to save any information you need for later
@@ -21,120 +28,91 @@ class MyDependency extends Dependency {
   }
 }
 
-class MyDependencyTemplate {
+MyDependency.Template = class MyDependencyTemplate {
   apply(dep, source) {
-    const mixinObject = {
-      type: 'ObjectExpression',
-      properties: [
-        {
-          type: 'Property',
-          key: {
-            type: 'Identifier',
-            name: 'methods'
-          },
-          value: {
-            type: 'ObjectExpression',
-            properties: [
-              {
+    const originalCode = source.original()._valueAsString
+    const ast = acorn.parse(originalCode, { ecmaVersion: 2020, sourceType: 'module' });
+    // 遍历 AST 并修改节点
+    estraverse.traverse(ast, {
+      enter(node) {
+        const mixinSourceCode = `
+const mixinCode = {
+  methods: {
+    onPluginClick() {
+      console.log('onPluginClick')
+    }
+  }
+};
+    `;
+        // 查找 extendComponent 调用
+        if (
+          node.type === 'CallExpression' &&
+          node.callee.type === 'Identifier' &&
+          node.callee.name === 'extendComponent' &&
+          node.arguments.length > 1
+        ) {
+          const mixinCodeAST = acorn.parse(mixinSourceCode)
+          const secondArg = node.arguments[1];
+          if (secondArg.type === 'ObjectExpression') {
+            const isExistMixinProp = secondArg.properties.some(node => node.key.name === 'mixins')
+            if (!isExistMixinProp) {
+              secondArg.properties.push({
                 type: 'Property',
                 key: {
                   type: 'Identifier',
-                  name: 'onPluginClick'
+                  name: 'mixins'
                 },
                 value: {
-                  type: 'FunctionExpression',
-                  id: null,
-                  params: [],
-                  body: {
-                    type: 'BlockStatement',
-                    body: [
-                      {
-                        type: 'ExpressionStatement',
-                        expression: {
-                          type: 'CallExpression',
-                          callee: {
-                            type: 'MemberExpression',
-                            computed: false,
-                            object: {
-                              type: 'Identifier',
-                              name: 'console'
-                            },
-                            property: {
-                              type: 'Identifier',
-                              name: 'log'
-                            }
-                          },
-                          arguments: [
-                            {
-                              type: 'Literal',
-                              value: 'onPluginClick',
-                              raw: "'onPluginClick'"
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
+                  type: "ArrayExpression",
+                  elements: [mixinCodeAST.body[0].declarations[0].init]
                 },
-                kind: 'init',
-                method: true,
-                shorthand: false,
-                computed: false
-              }
-            ]
-          },
-          kind: 'init',
-          method: false,
-          shorthand: false,
-          computed: false
-        }
-      ]
-    };
-
-    // 解析源代码为 AST
-    const ast = acorn.parse(source.source(), { ecmaVersion: 2020, sourceType: 'module' });
-
-    // 遍历和修改 AST
-    let modified = false;
-    estraverse.replace(ast, {
-      enter(node) {
-        if (!modified && node.type === 'ObjectExpression') {
-          const properties = node.properties;
-          const mixinsIndex = properties.findIndex(prop => prop.key && prop.key.name === 'mixins');
-
-          if (mixinsIndex !== -1) {
-            // 如果存在 mixins 属性
-            const mixinsArray = properties[mixinsIndex].value.elements;
-            mixinsArray.unshift(mixinObject);
-          } else {
-            // 如果不存在 mixins 属性
-            properties.unshift({
-              type: 'Property',
-              key: {
-                type: 'Identifier',
-                name: 'mixins'
-              },
-              value: {
-                type: 'ArrayExpression',
-                elements: [mixinObject]
-              },
-              kind: 'init',
-              method: false,
-              shorthand: false,
-              computed: false
-            });
+                kind: 'init'
+              });
+            } else {
+              // TODO
+            }
           }
-
-          modified = true; // 标记已修改，防止无限循环
+          source.replace(node.start, node.end, escodegen.generate(node).replace('extendComponent', ''))
         }
       }
     });
-
-    // 生成修改后的代码
-    const newSource = escodegen.generate(ast);
-    source.replace(0, source.size(), newSource);
+//     if (source._source._valueAsString) {
+//       source._replacements.forEach((place) => {
+//         console.log(place)
+//       })
+//       // 先让所有代码都进行一次处理
+//       console.log(source._source._valueAsString)
+//       // 我要找到那个object的下标和长度，然后替换那部分就可以了
+//       console.log('source.size()', source.size(), source)
+//       source.replace(89+1+2, 89+1+2+17, 'export-hello-nemod')
+//       console.log('nemo 75 - 89 ', source._source._valueAsString.slice(89+1+2, 89+1+2+18))
+//       // 需要处理两种场景，有mixins和无mixins
+//       // 实际上也可以在runtime时用extendComponnt函数处理，但是runtime处理影响性能
+//       // 这两个策略都应该被支持，因为开发者会在安全性和性能上自行权衡
+// //       source.replace(0, source.size(), `extendComponent("export-hello-world", {
+// //   name: "CloudHelloWorld",
+// //   methods: {
+// //     doFoo() {
+// //       console.log("foo");
+// //     },
+// //   },
+// // });`)
+//     }
+//     console.log('\n\n')
+//     source.replace(0, source.size(), `// 代码这边应该是要混入原本的
+// import { extendComponent } from "@/utils";
+// export default extendComponent("export-hello-world", {
+//   name: "CloudHelloWorld",
+//   methods: {
+//     doFoo() {
+//       console.log("foo");
+//     }
+//   }
+// });
+// `)
   }
 }
+
 class MyPlugin {
   apply(compiler) {
     // 我需要在分析代码阶段进行处理
@@ -143,19 +121,19 @@ class MyPlugin {
     // 现在要做的是识别到 extendComponent 然后把第一个参数改写掉
     // compiler.normalModuleFactory.hooks.parser
     //   .for("javascript/auto")
-    //   .tap(pluginName, (parser) => {
+    //   .tap(PLUGIN_NAME, (parser) => {
     //     parser.hooks.call
     //       .for("extendComponent")
-    //       .tap(pluginName, (expression) => {
+    //       .tap(PLUGIN_NAME, (expression) => {
     //         // 在这里添加您自己的逻辑，例如修改表达式或记录信息
     //       });
     //   });
 
-    // compiler.hooks.normalModuleFactory.tap(pluginName, (factory) => {
-    //   factory.hooks.parser.for("javascript/auto").tap(pluginName, (parser) => {
+    // compiler.hooks.normalModuleFactory.tap(PLUGIN_NAME, (factory) => {
+    //   factory.hooks.parser.for("javascript/auto").tap(PLUGIN_NAME, (parser) => {
     //     if (parser.hooks && parser.hooks.program) {
     //       parser.hooks.program
-    //         .tap(pluginName, (ast, comments) => {
+    //         .tap(PLUGIN_NAME, (ast, comments) => {
     //           if (ast) {
     //             try {
     //               let has = false
@@ -189,7 +167,7 @@ class MyPlugin {
     //   });
     // })
     //   // factory.hooks.module.tap(
-    //   //   pluginName,
+    //   //   PLUGIN_NAME,
     //   //   (module, createData, resolveData) => {
     //   //     if (
     //   //       module.type === "javascript/auto" &&
@@ -224,56 +202,23 @@ class MyPlugin {
     //   // }
     // });
 
-    compiler.hooks.compilation.tap(pluginName, (compilation) => {
-      // compilation.hooks.optimizeModules.tap(pluginName, modules => {
-      //   for (const module of modules) {
-      //     if (module.context && module.context.includes('cloud') && module.type === 'javascript/auto' && module.resource && module.resource.includes('HelloWorld.vue?vue&type=script')) {
-      //         // 获取模块的原始源代码
-      //         const originalSource = module.originalSource();
-      //         const originalSourceCode = originalSource.source();
-      //
-      //         // 创建 ReplaceSource 实例
-      //         const replaceSource = new sources.ReplaceSource(originalSource);
-      //
-      //         // 查找并替换 console.log
-      //         const regex = /console\.log/g;
-      //         let match;
-      //         while ((match = regex.exec(originalSourceCode)) !== null) {
-      //           replaceSource.replace(match.index, match.index + match[0].length - 1, 'console.warn');
-      //         }
-      //
-      //         console.log(module._source)
-      //         // 使用 webpack 提供的 API 设置新的源代码
-      //         // module._source = replaceSource;
-      //       }
-      //       // module._source = new sources.RawSource(modifiedSource);
-      //   }
-      // })
-      // compilation.hooks.buildModule.tap('MyPluginName', module => {
-      //   module.addDependency(new MyDependency(module));
-      // });
-
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation, { normalModuleFactory }) => {
       compilation.dependencyTemplates.set(
         MyDependency,
-        new MyDependencyTemplate(),
+        new MyDependency.Template(),
       );
 
-      compilation.hooks.succeedModule.tap(pluginName, (module) => {
+      compilation.hooks.succeedModule.tap(PLUGIN_NAME, (module) => {
         if (module.context && module.context.includes('cloud')
           && module.type === 'javascript/auto'
           && module.resource
           && module.resource.includes('HelloWorld.vue?vue&type=script')
         ) {
-          // console.log(parser.state.module.buildInfo)
-          // module.addDependency(new Dependency());
           module.addDependency(new MyDependency(module.resource));
         }
-        // if (module.context && module.context.includes('cloud') && module.type === 'javascript/auto' && module.resource && module.resource.includes('HelloWorld.vue?vue&type=script')) {
-        //   const originalSource = module.originalSource();
-        //   console.log(originalSource)
-        // }
       });
-      // compilation.hooks.normalModuleFactory.tap(pluginName, (normalModuleFactory) => {
+
+      // compilation.hooks.normalModuleFactory.tap(PLUGIN_NAME, (normalModuleFactory) => {
       //   // normalModuleFactory.hooks.beforeResolve.tapAsync('MyPlugin', (resolveData, callback) => {
       //   //   // 你可以在这里修改 resolveData
       //   //   console.log('Before Resolve:', resolveData);
@@ -288,7 +233,7 @@ class MyPlugin {
       //
       // })
       // compilation.hooks.processAssets.tap({
-      //   name: pluginName,
+      //   name: PLUGIN_NAME,
       //   state: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
       // }, (assets) => {
       //   Object.keys(assets).forEach((filename) => {
@@ -307,7 +252,7 @@ class MyPlugin {
       //   //   });
       //   // });
       // });
-      // compilation.hooks.optimizeChunkAssets.tap(pluginName, (chunks) => {
+      // compilation.hooks.optimizeChunkAssets.tap(PLUGIN_NAME, (chunks) => {
       //   chunks.forEach((chunk) => {
       //     chunk.files.forEach((filename) => {
       //       if (filename.includes("app")) {
@@ -321,6 +266,7 @@ class MyPlugin {
       //   });
       // });
     });
+
   }
 }
 

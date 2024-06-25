@@ -14,13 +14,6 @@ import { extendComponent } from "@/utils";
 
 export default extendComponent("export-hello-world", {
   name: "CloudHelloWorld",
-  mixins: [{
-    methods: {
-      onPluginClick() {
-        console.log('onPluginClick')
-      }
-    }
-  }],
   methods: {
     doFoo() {
       console.log("foo");
