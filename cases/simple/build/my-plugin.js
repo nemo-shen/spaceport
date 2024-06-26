@@ -44,6 +44,7 @@ const mixinCode = {
   }
 };
     `;
+        // 接下来要将extendComponent作为一个依赖进行处理，而不是直接在mixins中写入对象
         // 查找 extendComponent 调用
         if (
           node.type === 'CallExpression' &&
