@@ -54,8 +54,8 @@ const mixinCode = {
           const mixinCodeAST = acorn.parse(mixinSourceCode)
           const secondArg = node.arguments[1];
           if (secondArg.type === 'ObjectExpression') {
-            const isExistMixinProp = secondArg.properties.some(node => node.key.name === 'mixins')
-            if (!isExistMixinProp) {
+            const mixinsIndex = secondArg.properties.findIndex(node => node.key.name === 'mixins')
+            if (mixinsIndex === -1) {
               secondArg.properties.push({
                 type: 'Property',
                 key: {
@@ -69,7 +69,8 @@ const mixinCode = {
                 kind: 'init'
               });
             } else {
-              // TODO
+              const mixinNode = secondArg.properties[mixinsIndex]
+              mixinNode.value.elements.unshift(mixinCodeAST.body[0].declarations[0].init)
             }
           }
           source.replace(node.start, node.end, escodegen.generate(node).replace('extendComponent', ''))

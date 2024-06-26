@@ -14,6 +14,7 @@ import { extendComponent } from "@/utils";
 
 export default extendComponent("export-hello-world", {
   name: "CloudHelloWorld",
+  mixins: [{}],
   methods: {
     doFoo() {
       console.log("foo");
