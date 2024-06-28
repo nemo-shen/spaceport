@@ -3,9 +3,11 @@ const escodegen = require('escodegen');
 const estraverse = require('estraverse');
 const {ConcatSource} = require("webpack-sources");
 const {sources, Dependency} = require('webpack');
+const HarmonyImportDependency = require('webpack/lib/dependencies/HarmonyImportDependency')
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 const generate = require('@babel/generator').default;
+
 const PLUGIN_NAME = "MyPlugin";
 
 const {
@@ -210,12 +212,26 @@ class MyPlugin {
         new MyDependency.Template(),
       );
 
+      compilation.dependencyTemplates.set(
+        HarmonyImportDependency,
+        new HarmonyImportDependency.Template()
+      );
+
       compilation.hooks.succeedModule.tap(PLUGIN_NAME, (module) => {
         if (module.context && module.context.includes('cloud')
           && module.type === 'javascript/auto'
           && module.resource
           && module.resource.includes('HelloWorld.vue?vue&type=script')
         ) {
+          const request = '/Users/nemo/github/nemo-shen/spaceport/cases/simple/src/utils/mixin.js';
+          const sourceOrder = 0; // 源代码中的顺序
+          const parserScope = {}; // 解析器范围
+          const ids = []; // 导出的 ID 列表
+          const name = 'default'; // 导出的名称
+
+          // 创建 HarmonyImportDependency 实例
+          const harmonyImportDependency = new HarmonyImportDependency(request, sourceOrder, parserScope, ids, name);
+          module.addDependency(harmonyImportDependency);
           module.addDependency(new MyDependency(module.resource));
         }
       });
