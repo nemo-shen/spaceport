@@ -38,3 +38,7 @@ vue2
 - [x] 实现webpack修改源码
 - [ ] 根据两个文件代码改出合并后的代码
 
+
+
+实际上spaceport应该是一个loader [UML](./spaceport-loader.json)
+

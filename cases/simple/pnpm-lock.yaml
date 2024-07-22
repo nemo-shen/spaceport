@@ -15,6 +15,9 @@ importers:
         specifier: ^2.6.14
         version: 2.7.16
     devDependencies:
+      '@babel/plugin-transform-async-to-generator':
+        specifier: ^7.24.7
+        version: 7.24.7(@babel/core@7.24.7)
       '@vue/cli-plugin-babel':
         specifier: ~5.0.0
         version: 5.0.8(@vue/cli-service@5.0.8(@vue/compiler-sfc@3.4.29)(lodash@4.17.21)(vue-template-compiler@2.7.16)(vue@2.7.16)(webpack-sources@3.2.3))(core-js@3.37.1)(vue@2.7.16)

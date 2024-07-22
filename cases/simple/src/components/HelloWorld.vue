@@ -40,6 +40,14 @@ export default exposeComponent(
       name: 'HelloWorld',
       props: {
         msg: String
+      },
+      methods: {
+        async fetchSomeData() {
+          const res = await fetch('api');
+          for (const item of res) {
+            console.log(item);
+          }
+        }
       }
     })
 </script>
